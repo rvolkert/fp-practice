@@ -25,9 +25,14 @@ object Exercises {
     def op(x: A, y: A): A
   }
 
-  implicit def monoidInt: Monoid[Int] = new Monoid[Int]{
+  implicit def intAdditionMonoid: Monoid[Int] = new Monoid[Int]{
     def zero = 0
     def op(x: Int, y: Int): Int = x + y
+  }
+
+  implicit def intMultiplicationMonoid: Monoid[Int] = new Monoid[Int]{
+    def zero = 1
+    def op(x: Int, y: Int): Int = x * y
   }
 
   implicit def monoidString: Monoid[String] = new Monoid[String]{
