@@ -225,18 +225,159 @@ object Exercises {
   }
 
   //Exercise 3.16
-  //Exercise 3.17
-  //Exercise 3.18
-  //Exercise 3.19
-  //Exercise 3.20
-  //Exercise 3.21
-  //Exercise 3.22
-  //Exercise 3.23
-  //Exercise 3.24
-  //Exercise 3.25
-  //Exercise 3.26
-  //Exercise 3.27
-  //Exercise 3.28
+  def addOne(xs: List[Int]): List[Int] = {
+    // def loop(xs: List[Int], acc: List[Int]): List[Int] = xs match {
+    //   case Nil => acc
+    //   case Cons(h,t) => loop(t, Cons((h+1), acc))
+    // }
+    // reverse(loop(xs, Nil))
+    foldLeft(xs, List[Int]())((ys, x) => appendL(ys, x + 1))
   }
 
+  //Exercise 3.17
+  def doublesToStrings(ds: List[Double]): List[String] = {
+    foldLeft(ds, List[String]())((ss, d) => appendL(ss, d.toString))
+  }
+
+  //Exercise 3.18
+  def map1[A,B](as: List[A])(f: A => B): List[B] = {
+    foldLeft(as, List[B]())((bs, a) => appendL(bs, f(a)))
+  }
+
+  //Exercise 3.19
+  def filter[A](as: List[A])(f: A => Boolean): List[A] = {
+    foldLeft(as, List[A]())((ms, a) => if (f(a)) appendL(ms, a) else ms)
+  }
+
+  def removeOdds(xs: List[Int]): List[Int] = {
+    filter(xs)(_ % 2 == 0)
+  }
+
+  //Exercise 3.20
+  def appendList[A](front: List[A], back: List[A]) = {
+    foldLeft(reverse(front), back)((as, a) => Cons(a, as))
+  }
+  def flatMap1[A,B](as: List[A])(f: A => List[B]): List[B] = {
+    foldLeft(as, List[B]())((bs, a) => appendList(bs, f(a)))
+    // foldRightL(as, List[B]())((a, bs) => appendList(f(a), bs))
+  }
+
+  //Exercise 3.21
+  def filter2[A](as: List[A])(f: A => Boolean): List[A] = {
+    flatMap1(as)(a => if (f(a)) List(a) else Nil)
+  }
+  //Exercise 3.22
+  def addIntLists(first: List[Int], second: List[Int]): List[Int] = {
+    def loop(first: List[Int], second: List[Int], acc: List[Int]): List[Int] = {
+      (first, second) match {
+        case (Nil, _) => acc
+        case (_, Nil) => acc
+        case (Cons(h, t), Cons(h2, t2)) => loop(t, t2, appendL(acc, h + h2))
+      }
+    }
+    loop(first, second, Nil)
+  }
+
+  //Exercise 3.23
+  def zipWith[A,B](first: List[A], second: List[A])(f: (A, A) => B): List[B] = {
+    def loop(first: List[A], second: List[A], acc: List[B]): List[B] = {
+      (first, second) match {
+        case (Nil, _) => acc
+        case (_, Nil) => acc
+        case (Cons(h, t), Cons(h2, t2)) => loop(t, t2, appendL(acc, f(h, h2)))
+      }
+    }
+    loop(first, second, List[B]())
+  }
+
+  //Exercise 3.24
+  def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = (sup, sub) match {
+    case (_, Nil) => true
+    case (Nil, _) => false
+    case (Cons(h,t), Cons(h2,t2)) if h == h2 => startsWith(t,t2) || hasSubsequence(t, sub)
+    case (_, Cons(toMatch, _)) => hasSubsequence(dropWhile(sup, (a: A) => a != toMatch), sub)
+  }
+  //created for use in 3.24
+  def startsWith[A](sup: List[A], sub: List[A]): Boolean = (sup, sub) match {
+    case (_, Nil) => true
+    case (Cons(h,t), Cons(h2,t2)) if h == h2 => startsWith(t,t2)
+    case _ => false
+  }
+  }
+
+  sealed trait Tree[+A] //ADT with sum (union) of 2
+  case class Leaf[A](value: A) extends Tree[A]
+  case class Branch[A](left: Tree[A], right: Tree[A]) extends Tree[A]
+
+  object Tree {
+    //Exercise 3.25 - count the nodes
+    def treeSize[A](t: Tree[A]): Int = t match {
+      case Leaf(_) => 1
+      case Branch(l,r) => 1 + treeSize(l) + treeSize(r)
+    }
+
+    def treeSizeLoop[A](tree: Tree[A]): Int = {
+      def loop(t: Tree[A], acc: Int): Int = t match {
+        case Leaf(_) => acc + 1
+        case Branch(l,r) => loop(l, loop(r, acc + 1))//couldn't model this acc + 1 with oldFold - needed lf and bf
+      }
+      loop(tree, 0)
+    }
+
+    // Exercise 3.26
+    def maximum(tree: Tree[Int]): Int = {
+      def loop(t: Tree[Int], acc: Int): Int = t match {
+        case Leaf(x) => acc max x
+        case Branch(l,r) => loop(l, loop(r, acc))
+      }
+      loop(tree, Int.MinValue)
+    }
+
+    def maximum2(tree: Tree[Int]): Int = tree match {
+      case Leaf(x) => x
+      case Branch(l,r) => maximum2(l) max maximum2(r)
+    }
+
+    //Exercise 3.27
+    //max path length to a leaf
+    def depth[A](tree: Tree[A]): Int = tree match {
+      case Leaf(_) => 0
+      case Branch(l,r) => 1 + (depth(l) max depth(r))
+    }
+
+    //Exercise 3.28
+    def mapTree[A,B](tree: Tree[A])(f: A => B): Tree[B] = tree match {
+      case Leaf(a) => Leaf(f(a))
+      case Branch(l,r) => Branch(mapTree(l)(f), mapTree(r)(f))
+    }
+
+    //Exercise 3.29
+    def fold[A,B](tree: Tree[A])(lf: A => B)(bf: (B, B) => B): B = tree match {
+      case Leaf(a) => lf(a)
+      case Branch(l,r) => bf(fold(l)(lf)(bf), fold(r)(lf)(bf))
+    }
+
+    //didn't work because it didn't have a way to combine branches into a new B
+    //could only combine acc with leaves
+    def oldFold[A,B](tree: Tree[A], z: B)(f: (A, B) => B): B = {
+      def loop(t: Tree[A], acc: B): B = t match {
+        case Leaf(a) => f(a,acc)
+        case Branch(l,r) => loop(l, loop(r, acc))
+      }
+      loop(tree, z)
+    }
+
+    def sizeFold[A](t: Tree[A]): Int = {
+      fold(t)(_ => 1)((lVal,rVal) => 1 + lVal + rVal)
+    }
+    def maximumFold(t: Tree[Int]): Int = {
+      fold(t)(identity)((l,r) => l max r)
+    }
+    def depthFold[A](t: Tree[A]): Int = {
+      fold(t)(_ => 0)((l,r) => 1 + (l max r))
+    }
+    def mapFold[A,B](t: Tree[A])(f: A => B): Tree[B] = {
+      fold(t)(a => Leaf(f(a)):Tree[B])((l,r) => Branch(l, r))
+    }
+  }
 }

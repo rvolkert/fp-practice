@@ -2,6 +2,7 @@ package rvolkert.bookclub
 
 import Exercises._
 import Exercises.List._
+import Exercises.Tree._
 import org.specs2.mutable.Specification
 
 object ExercisesSpec extends Specification {
@@ -195,6 +196,97 @@ object ExercisesSpec extends Specification {
     }
     "combine the lists of lists into one list in linear time" in {
       concatList(List(List(1,2), List(3), Nil, List(4,5,6))) === List(1,2,3,4,5,6)
+    }
+  }
+
+  "3.16 - 3.24" should {
+    "add one to each int in the list" in {
+      addOne(List(1,2,3)) === List(2,3,4)
+      addOne(List(-1)) === List(0)
+    }
+    "make a list of doubles into a list of strings" in {
+      doublesToStrings(List(1.1, 2, 3)) === List("1.1", "2.0", "3.0")
+    }
+    "map a function to each list element" in {
+      map1(List(1,2,3))(_ + 1) === List(2,3,4)
+    }
+    "filter according to a predicate" in {
+      filter(List(1,2,3,4))(_ != 3) === List(1,2,4)
+      removeOdds(List(1,2,3,4,5)) === List(2,4)
+    }
+    "add a list to the end of a list" in {
+      appendList(List(1,2,3), List(4,5)) === List(1,2,3,4,5)
+    }
+    "flatMap over a list with a function that returns another list" in {
+      flatMap1(List(0, 1, 2))(i => List(i, i+1, i+2)) === List(0,1,2, 1,2,3, 2,3,4)
+    }
+    "filter using flatMap" in {
+      filter2(List("abc", "b", "a", "hello"))(a => a.contains('a')) === List("abc", "a")
+    }
+    "add the corresponding ints in a list (and drop the extra ints in the larger list)" in {
+      addIntLists(List(0,1,2), List(1,2,3,4)) === List(1,3,5)
+      addIntLists(List(0,1,2,4), List(1,2,3)) === List(1,3,5)
+    }
+    "zip two lists" in {
+      zipWith(List(0,1,2), List(1,2,3,4))(_ + _) === List(1,3,5)
+      zipWith(List("h","h"), List("i", "ello"))(_ + _) === List("hi", "hello")
+      zipWith(List(0,1,2,4), List(1,2,3))(_ * _) === List(0,2,6)
+    }
+    "determine whether a list has a subsequence" in {
+      hasSubsequence(List[String](), List[String]()) must beTrue
+      hasSubsequence(List("1"), List[String]()) must beTrue
+      hasSubsequence(List[String](), List("1")) must beFalse
+      hasSubsequence(List(0,1,2,3,4), List(0,1,2)) must beTrue
+      hasSubsequence(List(1,2,0,1,2,3,4), List(1,2,3)) must beTrue
+      hasSubsequence(List(0,1,0,2,0,2,3), List(0,2,3)) must beTrue
+      hasSubsequence(List(0,1,2), List(1,3)) must beFalse
+      hasSubsequence(List(0,1,2,3), List(0,3)) must beFalse
+    }
+    "determine whether a list starts with another list" in {
+      startsWith(List[String](), List[String]()) must beTrue
+      startsWith(List("1"), List[String]()) must beTrue
+      startsWith(List[String](), List[String]("1")) must beFalse
+      startsWith(List(1,2,3,4,5), List(1,2,3,4,5)) must beTrue
+      startsWith(List(1,2,3,4), List(1,2,3,4,5)) must beFalse
+      startsWith(List(1,2,3,4,5), List(1,2,3,4)) must beTrue
+    }
+  }
+  "3.25 - 3.29" should {
+    "find the size (count the leaves and branches) of a tree" in {
+      treeSize(Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))) === 5
+      treeSizeLoop(Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))) === 5
+      sizeFold(Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))) === 5
+      treeSize(Leaf(1)) === 1
+      treeSizeLoop(Leaf(1)) === 1
+      sizeFold(Leaf(1)) === 1
+    }
+    "find the maximum value of an int tree" in {
+      maximum(Leaf(1)) === 1
+      maximum(Branch(Leaf(1), Branch(Leaf(2), Branch(Leaf(4), Leaf(3))))) === 4
+      maximum(Branch(Leaf(-1), Branch(Leaf(-4), Leaf(0)))) === 0
+      maximum2(Leaf(1)) === 1
+      maximum2(Branch(Leaf(1), Branch(Leaf(2), Branch(Leaf(4), Leaf(3))))) === 4
+      maximum2(Branch(Leaf(-1), Branch(Leaf(-4), Leaf(0)))) === 0
+
+      maximumFold(Leaf(1)) === 1
+      maximumFold(Branch(Leaf(1), Branch(Leaf(2), Branch(Leaf(4), Leaf(3))))) === 4
+      maximumFold(Branch(Leaf(-1), Branch(Leaf(-4), Leaf(0)))) === 0
+    }
+    "find the depth (max length path) of a tree" in {
+      depth(Leaf(1)) === 0
+      depth(Branch(Leaf(1), Branch(Leaf(4), Leaf(3)))) === 2
+      depth(Branch(Leaf(1), Branch(Leaf(4), Branch(Leaf(1), Leaf(2))))) === 3
+      depthFold(Leaf(1)) === 0
+      depthFold(Branch(Leaf(1), Branch(Leaf(4), Leaf(3)))) === 2
+      depthFold(Branch(Leaf(1), Branch(Leaf(4), Branch(Leaf(1), Leaf(2))))) === 3
+    }
+    "map over the values in a tree" in {
+      mapTree(Branch(Leaf(1), Branch(Leaf(4), Leaf(3))))(_ * 2) === Branch(Leaf(2), Branch(Leaf(8), Leaf(6)))
+      mapFold(Branch(Leaf(1), Branch(Leaf(4), Leaf(3))))(_ * 2) === Branch(Leaf(2), Branch(Leaf(8), Leaf(6)))
+    }
+    "fold the values of a tree" in {
+      fold(Branch(Leaf(1), Branch(Leaf(4), Leaf(3))))(identity)(_ max _) === 4
+      fold(Branch(Leaf(1), Branch(Leaf(4), Leaf(3))))(List(_))((l,r) => combineLists(l,r)) === List(1,4,3)
     }
   }
 }
