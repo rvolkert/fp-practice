@@ -303,7 +303,15 @@ object Exercises {
     case (Cons(h,t), Cons(h2,t2)) if h == h2 => startsWith(t,t2)
     case _ => false
   }
+
+  def hasSubsequenceFromBrianH[A](seq: List[A], subseq: List[A]): Boolean = {
+      Nil == foldLeft(seq, subseq) {
+      case (Cons(expected, remaining), current) =>
+        if(current == expected) remaining else subseq  // Starts over if a partial subseq match fails
+      case (Nil, _) => Nil
+    }
   }
+}
 
   sealed trait Tree[+A] //ADT with sum (union) of 2
   case class Leaf[A](value: A) extends Tree[A]

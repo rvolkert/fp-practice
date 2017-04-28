@@ -19,7 +19,7 @@ object Chapter4 {
     }
 
     def flatMap[B](f: A => Option[B]): Option[B] = {
-      this.map(f(_)).getOrElse(None)
+      this.map(f).getOrElse(None)
     }
 
     def orElse[B >: A](default: => Option[B]): Option[B] = {
