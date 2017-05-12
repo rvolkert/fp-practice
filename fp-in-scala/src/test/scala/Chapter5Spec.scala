@@ -160,13 +160,13 @@ object Chapter5Spec extends Specification {
     tails(i).take(5).toList.map(_.toList) === List(List(1,2,3), List(2,3), List(3), List())
   }
 
-  // "hasSubsequence" in {
-  //   val i = Stream(1,2,3,1,3)
-  //   // i.hasSubsequence(Stream(1,3)) must beTrue
-  //   Stream(1).hasSubsequence(Stream(1)) must beTrue
-  // }
-
-  "scanRight" in {
-    Stream(1,2,3).scanRight(0)(_ + _).toList === List(6,5,3,0)
+  "hasSubsequence" in {
+    val i = Stream(1,2,3,1,3)
+    // i.hasSubsequence(Stream(1,3)) must beTrue
+    Stream(1).hasSubsequence(Stream(1)) must beTrue
   }
+
+  // "scanRight" in {
+  //   Stream(1,2,3).scanRight(0)(_ + _).toList === List(6,5,3,0)
+  // }
 }

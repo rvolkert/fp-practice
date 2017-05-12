@@ -121,49 +121,49 @@ This example should be equivalent to the expression List(1+2+3+0, 2+3+0, 3+0,
 elements always takes time linear in n. Can it be implemented using unfold? How, or
 why not? Could it be implemented using another function we’ve written?*/
 
-    def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = { //currently backwards
-      unfold((this, z, false)){ ss => (ss._1, ss._2, ss._3) match {
-        case (Cons(h,t), acc, _) => Some((acc, (t(), f(h(), acc), false)))
-        case (Empty, acc, false) => Some((acc, (empty, acc, true)))
-        case (Empty, _, true) => None
-      }}
-    }
-
-    def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = {
-      def go(z: B): (Stream[B], B) =
-        tails(this).foldRight((empty, z)){(s, b) =>
-          val (sAcc, acc) = b
-          s.foldRight(acc)(f)
-        }
-    }
-    def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = {
-      def previous(s: Stream[A]): Stream
-      def go(remaining: Stream[A]): Stream[B] = {
-        remaining match {
-          case Cons(h,t) =>
-            val prev = previous(t())
-            prev match {
-              case Cons(b, bs) =>
-                cons(f(h(), b), prev)
-              case Empty =>
-                cons
-            }
-          case Empty => Stream(acc)
-        }
-      }
-      go(this, Stream(), z)
-    }
-    def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = {
-      //try building up a function out of f and the previous in another internal function so you can reuse previous results
-      this match {
-        case Empty =>
-          Stream(z)
-        case Cons(h, Empty) =>
-
-        case Cons(h, t) =>
-          scanRight()
-      }
-    }
+    // def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = { //currently backwards
+    //   unfold((this, z, false)){ ss => (ss._1, ss._2, ss._3) match {
+    //     case (Cons(h,t), acc, _) => Some((acc, (t(), f(h(), acc), false)))
+    //     case (Empty, acc, false) => Some((acc, (empty, acc, true)))
+    //     case (Empty, _, true) => None
+    //   }}
+    // }
+    //
+    // def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = {
+    //   def go(z: B): (Stream[B], B) =
+    //     tails(this).foldRight((empty, z)){(s, b) =>
+    //       val (sAcc, acc) = b
+    //       s.foldRight(acc)(f)
+    //     }
+    // }
+    // def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = {
+    //   def previous(s: Stream[A]): Stream
+    //   def go(remaining: Stream[A]): Stream[B] = {
+    //     remaining match {
+    //       case Cons(h,t) =>
+    //         val prev = previous(t())
+    //         prev match {
+    //           case Cons(b, bs) =>
+    //             cons(f(h(), b), prev)
+    //           case Empty =>
+    //             cons
+    //         }
+    //       case Empty => Stream(acc)
+    //     }
+    //   }
+    //   go(this, Stream(), z)
+    // }
+    // def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] = {
+    //   //try building up a function out of f and the previous in another internal function so you can reuse previous results
+    //   this match {
+    //     case Empty =>
+    //       Stream(z)
+    //     case Cons(h, Empty) =>
+    //
+    //     case Cons(h, t) =>
+    //       scanRight()
+    //   }
+    // }
 
   }
   case object Empty extends Stream[Nothing]
@@ -255,7 +255,8 @@ why not? Could it be implemented using another function we’ve written?*/
       unfold((stream, false)){ ss => (ss._1, ss._2) match {
         case (Cons(h,t), _) => Some((ss._1, (t(), false)))
         case (Empty, false) => Some((empty, (empty, true)))
-        case (Empty, true) => None
+        // case (Empty, true) => None
+        case _ => None // fixes compile error about exhaustivity, though it was exhaustive before
       }}
     }
 //____________used above as helper
