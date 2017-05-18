@@ -86,7 +86,7 @@ object RNG {
     //   (x :: xs, rng3)
     // }
     def go(remaining: Int, gen: RNG, acc: List[Int]): (List[Int], RNG) = {
-      if (remaining >= 0) {
+      if (remaining <= 0) {
         (acc, gen)
       } else {
         val (x, gen2) = gen.nextInt
@@ -96,29 +96,108 @@ object RNG {
     go(count, rng, Nil)
   }
 
-  // 6.4 use map to implement double
+  // 6.5 use map to implement double
   def doubleMap(rng: RNG): (Double, RNG) = {
     map(nonNegativeInt)(x => (x - 1).toDouble / Int.MaxValue)(rng)
   }
 
+  // 6.6
   def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = rng => {
     val (a, rng2) = ra(rng)
     val (b, rng3) = rb(rng2)
     (f(a,b), rng3)
   }
 
-  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = ???
+  def both[A,B](ra: Rand[A], rb: Rand[B]): Rand[(A,B)] = map2(ra,rb)((_,_))
+  val randIntDouble: Rand[(Int, Double)] = both(int, double)
 
-  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = ???
+  // 6.7
+  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rng => {
+    def go(ops: List[Rand[A]], gen: RNG): (List[A], RNG) = ops match {
+      case h :: t =>
+        val (a, gen2) = h(rng)
+        val (as, genX) = go(t, gen2)
+        (a :: as, genX)
+      case Nil =>
+        (Nil, gen)
+    }
+    go(fs, rng)
+  }
+
+  def ints2(count: Int)(rng: RNG): (List[Int], RNG) = {
+    sequence(List.fill(count)({gen: RNG => gen.nextInt}))(rng)
+  }
+
+  // 6.8
+  //from the book
+  def nonNegativeLessThanBook(n: Int): Rand[Int] = { rng =>
+    val (i, rng2) = nonNegativeInt(rng)
+    val mod = i % n
+    // if i is greater than the largest multiple of n
+    // before Int.MaxValue, m, this will wrap around into the negatives
+    // we don't want to use i, then, because nonNegativeLessThan's
+    // results will be unevenly distributed in favor of values between
+    // 0 and (Int.MaxValue - m)
+    if (i + (n-1) - mod >= 0)
+      (mod, rng2)
+    else nonNegativeLessThanBook(n)(rng2)
+  }
+
+  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = { rng =>
+    val (a, rng2) = f(rng)
+    g(a)(rng2)
+  }
+
+  def nonNegativeLessThan(n: Int): Rand[Int] = {
+    flatMap(nonNegativeInt) { i =>
+      val mod = i % n
+      if (i + (n-1) - mod >= 0)
+        rng => (mod, rng)
+      else nonNegativeLessThan(n)
+    }
+  }
+
+  def mapWithFlatMap[A,C](f: Rand[A])(h: A => C): Rand[C] = {
+    flatMap(f)(a => rng => (h(a), rng))
+  }
+
+  def map2WithFlatMap[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = {
+    flatMap(ra) { a =>
+      flatMap(rb) { b =>
+        rng => (f(a,b), rng)
+      }
+    }
+  }
+  //flatMap is considered more powerful than map and map2 because they can be written in terms of it
 }
 
 case class State[S,+A](run: S => (A, S)) {
   def map[B](f: A => B): State[S, B] =
-    ???
+    flatMap{ a: A => State(s => (f(a), s)) }
+
+  def mapFor[B](f: A => B): State[S, B] =
+    for {
+      a <- this
+    } yield f(a)
+
   def map2[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] =
-    ???
-  def flatMap[B](f: A => State[S, B]): State[S, B] =
-    ???
+    flatMap { a =>
+      sb.flatMap { b =>
+        State(s => (f(a,b), s))
+      }
+    }
+  def mapTwo[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] = {
+    for {
+      a <- this
+      b <- sb
+    } yield {
+      f(a,b)
+    }
+  }
+  def flatMap[B](f: A => State[S, B]): State[S, B] = State{ s =>
+    val (a, s2) = run(s)
+    f(a).run(s2)
+  }
 }
 
 sealed trait Input

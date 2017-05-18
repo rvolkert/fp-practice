@@ -67,6 +67,14 @@ object Chapter6Spec extends Specification {
     }
   }
 
+  "ints" should {
+    "generate a list of ints" in {
+      val rng = SimpleRNG(100)
+      ints(5)(rng) === ints(5)(rng)
+      ints(3)(ConstantRNG(5))._1 === List(5,5,5)
+    }
+  }
+
   "doubleMap" should {
     "generate a Double between 0 and 1, not including 1" in {
       val gen = SimpleRNG(1)
@@ -78,6 +86,14 @@ object Chapter6Spec extends Specification {
       isPositiveAndLessThanOne(doubleMap(ConstantRNG(Int.MinValue))._1)
       isPositiveAndLessThanOne(doubleMap(ConstantRNG(Int.MaxValue))._1)
       isPositiveAndLessThanOne(doubleMap(ConstantRNG(10))._1)
+    }
+  }
+
+  "ints2" should {
+    "generate a list of ints" in {
+      val rng = SimpleRNG(100)
+      ints2(5)(rng) === ints2(5)(rng)
+      ints2(3)(ConstantRNG(5))._1 === List(5,5,5)
     }
   }
 
@@ -94,32 +110,54 @@ object Chapter6Spec extends Specification {
     }
   }
 
-  // "randIntDouble" should {
-  //   "generate an int and a double from different rng states" in {
-  //     val rng = SimpleRNG(100)
-  //     val id = randIntDouble(rng)._1
-  //     double(ConstantRNG(id._1)) !== id._2
-  //   }
-  // }
-  //
-  // "randDoubleInt" should {
-  //   "generate a double and an int from different rng states" in {
-  //     val rng = SimpleRNG(100)
-  //     val di = randDoubleInt(rng)
-  //     double(ConstantRNG(di._1._2)) !== di._1._1
-  //   }
-  // }
-  //
-  // "nonNegativeLessThan" should {
-  //   "generates an integer between 0 (inclusive) and n (exclusive)" in {
-  //     val gen = NestableFakeRNG(Int.MaxValue, NestableFakeRNG(Int.MaxValue - 1, ConstantRNG(99)))
-  //     nonNegativeLessThan(100)(gen)._1 === 99
-  //
-  //     nonNegativeLessThan(100)(ConstantRNG(-99))._1 === 99
-  //     nonNegativeLessThan(100)(ConstantRNG(0))._1 === 0
-  //   }
-  // }
-  //
+  "randIntDouble" should {
+    "generate an int and a double from different rng states" in {
+      val rng = SimpleRNG(100)
+      val id = randIntDouble(rng)._1
+      double(ConstantRNG(id._1)) !== id._2
+    }
+  }
+
+  "sequence" should {
+    "make a list of Rand[A] into a Rand[List[A]], combining them into one transaction" in {
+      val rng = SimpleRNG(100)
+      val rand: Rand[Int] = _.nextInt
+      sequence(List(rand, rand, rand, rand))(rng) === sequence(List(rand, rand, rand, rand))(rng)
+      sequence(List(rand, rand, rand))(ConstantRNG(5)) === (List(5,5,5), ConstantRNG(5))
+    }
+  }
+
+  "NestableFakeRNG" should {
+    "return the next int and the rng it has" in {
+      val rng = NestableFakeRNG(1, NestableFakeRNG(2, ConstantRNG(3)))
+      val (one, rng2) = rng.nextInt
+      val (two, rng3) = rng2.nextInt
+      val (three, rng4) = rng3.nextInt
+      val (three2, _) = rng4.nextInt
+      one === 1
+      two === 2
+      three === 3
+      three2 === 3
+    }
+  }
+
+  "nonNegativeLessThan" should {
+    "generates an integer between 0 (inclusive) and n (exclusive) - book version" in {
+      val gen = NestableFakeRNG(Int.MaxValue, NestableFakeRNG(Int.MaxValue - 1, ConstantRNG(99)))
+      nonNegativeLessThanBook(100)(gen)._1 === 99
+
+      nonNegativeLessThanBook(100)(ConstantRNG(-99))._1 === 99
+      nonNegativeLessThanBook(100)(ConstantRNG(0))._1 === 0
+    }
+    "generates an integer between 0 (inclusive) and n (exclusive) - flatMap version" in {
+      val gen = NestableFakeRNG(Int.MaxValue, NestableFakeRNG(Int.MaxValue - 1, ConstantRNG(99)))
+      nonNegativeLessThan(100)(gen)._1 === 99
+
+      nonNegativeLessThan(100)(ConstantRNG(-99))._1 === 99
+      nonNegativeLessThan(100)(ConstantRNG(0))._1 === 0
+    }
+  }
+
   // "mapWithFlatMap" in {
   //   mapWithFlatMap(nonNegativeInt)(i => i - i % 2)(ConstantRNG(-5))._1 === 4
   // }
