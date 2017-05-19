@@ -115,7 +115,7 @@ object RNG {
   def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rng => {
     def go(ops: List[Rand[A]], gen: RNG): (List[A], RNG) = ops match {
       case h :: t =>
-        val (a, gen2) = h(rng)
+        val (a, gen2) = h(gen)
         val (as, genX) = go(t, gen2)
         (a :: as, genX)
       case Nil =>
@@ -208,5 +208,37 @@ case class Machine(locked: Boolean, candies: Int, coins: Int)
 
 object State {
   type Rand[A] = State[RNG, A]
+  def unit[S,A](a: A): State[S, A] = State(s => (a, s))
+  // def sequence[S,A](states: List[State[S, A]]): State[S, List[A]] = State { s =>
+  //   val asAndStates = for {
+  //     state <- states
+  //   } yield {
+  //     state.run(s)
+  //   }
+  //   (asAndStates.map(_._1), asAndStates.map(_._2).tail)
+  // }
+  // def sequence[S,A](states: List[State[S, A]]): State[S, List[A]] = {
+  //   states.flatMap()
+  // }
+  def sequence[S,A](states: List[State[S, A]]): State[S, List[A]] = State { s => {
+    def go(ops: List[State[S, A]], gen: S): (List[A], S) = ops match {
+      case h :: t =>
+        val (a, gen2) = h.run(gen)
+        val (as, genX) = go(t, gen2)
+        (a :: as, genX)
+      case Nil =>
+        (Nil, gen)
+    }
+    go(states, s)
+  }}
+
+  def modify[S](f: S => S): State[S, Unit] = for {
+    s <- get
+    _ <- set(f(s))
+  } yield ()
+
+  def get[S]: State[S,S] = State(s => (s,s))
+  def set[S](s: S): State[S, Unit] = State(_ => ((), s))
+
   def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
 }
