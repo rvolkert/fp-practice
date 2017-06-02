@@ -158,11 +158,46 @@ object Chapter6Spec extends Specification {
     }
   }
 
-  // "mapWithFlatMap" in {
-  //   mapWithFlatMap(nonNegativeInt)(i => i - i % 2)(ConstantRNG(-5))._1 === 4
-  // }
-  //
-  // "map2WithFlatMap" in {
-  //   map2WithFlatMap(int, int)((_, _))(NestableFakeRNG(1, ConstantRNG(2)))._1 === (1,2)
-  // }
+  "other maps" should {
+    "mapWithFlatMap" in {
+      mapWithFlatMap(nonNegativeInt)(i => i - i % 2)(ConstantRNG(-5))._1 === 4
+    }
+
+    "map2WithFlatMap" in {
+      map2WithFlatMap(int, int)((_, _))(NestableFakeRNG(1, ConstantRNG(2)))._1 === (1,2)
+    }
+  }
+
+  "Candy Machine" should {
+    import MachineLogic._
+
+    val lockedOneCandyNoCoins = Machine(true, 1, 0)
+    val unlockedOneCandyOneCoin = Machine(false, 1, 1)
+    val lockedNoCandyOneCoin = Machine(true, 0, 1)
+    val unlockedNoCandyOneCoin = Machine(false, 0, 1)
+
+    "take a coin and unlock when locked and candy is left" in {
+      simulateMachine(List(Coin)).run(lockedOneCandyNoCoins) === ((Coins(1), Candies(1)), unlockedOneCandyOneCoin)
+    }
+    "not take a coin when unlocked" in {
+      simulateMachine(List(Coin)).run(unlockedOneCandyOneCoin) === ((Coins(1), Candies(1)), unlockedOneCandyOneCoin)
+    }
+    "dispense candy and lock when unlocked and turned" in {
+      simulateMachine(List(Turn)).run(unlockedOneCandyOneCoin) === ((Coins(1), Candies(0)), lockedNoCandyOneCoin)
+    }
+    "not dispense candy when locked and turned" in {
+      simulateMachine(List(Turn)).run(lockedOneCandyNoCoins) === ((Coins(0), Candies(1)), lockedOneCandyNoCoins)
+    }
+    "remain unchanged when no candy is left" in {
+      simulateMachine(List(Coin)).run(lockedNoCandyOneCoin) === ((Coins(1), Candies(0)), lockedNoCandyOneCoin)
+      simulateMachine(List(Turn)).run(unlockedNoCandyOneCoin) === ((Coins(1), Candies(0)), unlockedNoCandyOneCoin)
+    }
+    "take a coin and give a candy when turned" in {
+      simulateMachine(List(Coin, Turn)).run(lockedOneCandyNoCoins) === ((Coins(1), Candies(0)), lockedNoCandyOneCoin)
+    }
+    "work for the book example" in {
+      val fourSuccessfulCandyBuys = List(Coin, Turn, Coin, Turn, Coin, Turn, Turn, Turn, Coin, Coin, Coin, Turn)
+      simulateMachine(fourSuccessfulCandyBuys).run(Machine(true, 5, 10)) === ((Coins(14), Candies(1)), Machine(true, 1, 14))
+    }
+  }
 }

@@ -112,16 +112,29 @@ object RNG {
   val randIntDouble: Rand[(Int, Double)] = both(int, double)
 
   // 6.7
-  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rng => {
-    def go(ops: List[Rand[A]], gen: RNG): (List[A], RNG) = ops match {
-      case h :: t =>
-        val (a, gen2) = h(gen)
-        val (as, genX) = go(t, gen2)
-        (a :: as, genX)
-      case Nil =>
-        (Nil, gen)
+  // def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rng => {
+  //   def go(ops: List[Rand[A]], gen: RNG): (List[A], RNG) = ops match {
+  //     case h :: t =>
+  //       val (a, gen2) = h(gen)
+  //       val (as, genX) = go(t, gen2)
+  //       (a :: as, genX)
+  //     case Nil =>
+  //       (Nil, gen)
+  //   }
+  //   go(fs, rng)
+  // }
+  // def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rng => {
+  //   fs.foldRight((List[A](), rng)){(rand, asAndGen) =>
+  //     val (as, gen) = asAndGen
+  //     val (a, gen2) = rand(gen)
+  //     (a :: as, gen2)
+  //   }
+  // }
+  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = {
+    // fs.foldRight({rng: RNG => (List[A](), rng)}){(randA, randListA) =>
+    fs.foldRight(unit(List[A]())){(randA, randListA) =>
+      map2(randA, randListA)(_ :: _)
     }
-    go(fs, rng)
   }
 
   def ints2(count: Int)(rng: RNG): (List[Int], RNG) = {
@@ -204,33 +217,42 @@ sealed trait Input
 case object Coin extends Input
 case object Turn extends Input
 
-case class Machine(locked: Boolean, candies: Int, coins: Int)
+case class Candies(count: Int)
+case class Coins(count: Int)
+
+case class Machine(locked: Boolean, candies: Int, coins: Int) {
+  def goodyTally: Candies = Candies(candies)
+  def goldTally: Coins = Coins(coins)
+  def unlocked: Boolean = !locked
+  def candiesRemain: Boolean = candies > 0
+}
+
+object MachineLogic {
+  def interactWithMachine(input: Input, machine: Machine): Machine = {
+    input match {
+      case Coin =>
+        if (machine.locked && machine.candiesRemain) machine.copy(locked = false, coins = machine.coins + 1) else machine
+      case Turn =>
+        if (machine.unlocked && machine.candiesRemain) machine.copy(locked = true, candies = machine.candies - 1) else machine
+    }
+  }
+
+  def simulateMachine(inputs: List[Input]): State[Machine, (Coins, Candies)] = State { machine: Machine =>
+    val newMachine = inputs.foldLeft(machine) { (m, input) =>
+      interactWithMachine(input, m)
+    }
+    ((newMachine.goldTally, newMachine.goodyTally), newMachine)
+  }
+}
 
 object State {
   type Rand[A] = State[RNG, A]
   def unit[S,A](a: A): State[S, A] = State(s => (a, s))
-  // def sequence[S,A](states: List[State[S, A]]): State[S, List[A]] = State { s =>
-  //   val asAndStates = for {
-  //     state <- states
-  //   } yield {
-  //     state.run(s)
-  //   }
-  //   (asAndStates.map(_._1), asAndStates.map(_._2).tail)
-  // }
-  // def sequence[S,A](states: List[State[S, A]]): State[S, List[A]] = {
-  //   states.flatMap()
-  // }
-  def sequence[S,A](states: List[State[S, A]]): State[S, List[A]] = State { s => {
-    def go(ops: List[State[S, A]], gen: S): (List[A], S) = ops match {
-      case h :: t =>
-        val (a, gen2) = h.run(gen)
-        val (as, genX) = go(t, gen2)
-        (a :: as, genX)
-      case Nil =>
-        (Nil, gen)
+  def sequence[S,A](states: List[State[S, A]]): State[S, List[A]] = {
+    states.foldRight(unit[S,List[A]](List[A]())){(stateA, stateListA) =>
+      stateA.map2(stateListA)(_ :: _)
     }
-    go(states, s)
-  }}
+  }
 
   def modify[S](f: S => S): State[S, Unit] = for {
     s <- get
@@ -240,5 +262,4 @@ object State {
   def get[S]: State[S,S] = State(s => (s,s))
   def set[S](s: S): State[S, Unit] = State(_ => ((), s))
 
-  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
 }
